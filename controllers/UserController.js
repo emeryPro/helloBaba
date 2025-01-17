@@ -282,6 +282,53 @@ const linkUserToActivity = async (req, res) => {
   }
 };
 
+const unlinkUserFromActivity = async (req, res) => {
+  try {
+    // 1. Vérifier si l'utilisateur connecté est un directeur
+    const userRoleId = req.user.role;
+    if (!userRoleId) {
+      return res.status(403).json({ message: "Rôle de l'utilisateur connecté non fourni." });
+    }
+
+    const directorRole = await Role.findOne({ where: { name: 'director' } });
+    if (!directorRole || parseInt(userRoleId) !== directorRole.id) {
+      return res.status(403).json({ message: "Seuls les directeurs peuvent exécuter cette action." });
+    }
+
+    // 2. Récupérer les données du client (user_id et activity_id)
+    const { user_id, activity_id } = req.body;
+    if (!user_id || !activity_id) {
+      return res.status(400).json({ message: "Les champs 'user_id' et 'activity_id' sont obligatoires." });
+    }
+
+    // 3. Vérifier si l'utilisateur est bien lié à l'activité dans ActivityUser
+    const activityUser = await ActivityUser.findOne({
+      where: {
+        user_id,
+        activity_id
+      }
+    });
+
+    if (!activityUser) {
+      return res.status(404).json({ message: "Cette liaison utilisateur-activité n'existe pas." });
+    }
+
+    // 4. Supprimer la liaison entre l'utilisateur et l'activité
+    await ActivityUser.destroy({
+      where: {
+        user_id,
+        activity_id
+      }
+    });
+
+    return res.status(200).json({ message: "Liaison supprimée avec succès." });
+  } catch (error) {
+    console.error("Erreur lors de la suppression de la liaison:", error);
+    return res.status(500).json({ message: "Erreur interne du serveur." });
+  }
+};
+
+
 
 module.exports = {
   createUser,
@@ -289,4 +336,5 @@ module.exports = {
   createSecondUser,
   getUsersByDirector,
   linkUserToActivity,
+  unlinkUserFromActivity,
 };
