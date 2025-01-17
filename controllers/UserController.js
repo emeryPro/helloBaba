@@ -245,9 +245,48 @@ const getUsersByDirector = async (req, res) => {
 };
 
 
+
+const linkUserToActivity = async (req, res) => {
+  try {
+    const { userId, activityId } = req.body; // userId et activityId sont envoyés dans le body de la requête
+
+    // Vérification des données d'entrée
+    if (!userId || !activityId) {
+      return res.status(400).json({ message: 'L\'ID de l\'utilisateur et de l\'activité sont obligatoires.' });
+    }
+
+    // Vérification de l'existence de l'utilisateur
+    const user = await User.findByPk(userId);  // Utilisation de la méthode findByPk si tu utilises l'ID utilisateur
+    if (!user) {
+      return res.status(404).json({ message: 'Utilisateur non trouvé.' });
+    }
+
+    // Vérifier si l'utilisateur est déjà lié à cette activité
+    const existingLink = await ActivityUser.findOne({
+      where: { user_id: userId, activity_id: activityId },
+    });
+    if (existingLink) {
+      return res.status(409).json({ message: 'Cet utilisateur est déjà lié à cette activité.' });
+    }
+
+    // Créer la liaison entre l'utilisateur et l'activité
+    await ActivityUser.create({
+      activity_id: activityId,
+      user_id: userId,
+    });
+
+    return res.status(201).json({ message: 'Utilisateur lié à l\'activité avec succès.' });
+  } catch (error) {
+    console.error('Erreur lors de la liaison de l\'utilisateur à l\'activité:', error);
+    return res.status(500).json({ message: 'Erreur interne du serveur.' });
+  }
+};
+
+
 module.exports = {
   createUser,
   getAllUsers,
   createSecondUser,
   getUsersByDirector,
+  linkUserToActivity,
 };
