@@ -8,30 +8,26 @@ class Activity extends Model {
 
 
     // Une activité appartient à un groupe d'activités
-    Activity.belongsTo(models.GroupActivity, {
+     Activity.belongsTo(models.GroupActivity, {
         foreignKey: 'groupe_activity_id',
-        as: 'group_activities', // Alias pour accéder au groupe associé
+        as: 'grou', 
       });
-  
+   
+
+   
+      
       // Une activité peut être liée à un utilisateur
-      Activity.belongsTo(models.User, {
+       Activity.belongsTo(models.User, {
         foreignKey: 'user_id',
         as: 'user', // Alias pour accéder à l'utilisateur associé
-      });
-      Activity.belongsToMany(models.User, {
+      }); 
+  /*     Activity.belongsToMany(models.User, {
           through: 'activityuser',
           foreignKey: 'activity_id', 
           as: 'users',
-        });
-        console.log('Association de Activity avec GroupActivity et User définie.');
+        }); */
+    
 
-
-  /*     Activity.associate = function(models){
-        Activity.belongsTo(models.GroupActivity, {
-            foreignKey: 'groupe_activity_id',
-            as: 'group'
-        })
-      }   */
     }
 }
 

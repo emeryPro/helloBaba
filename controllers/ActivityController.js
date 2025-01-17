@@ -1,8 +1,40 @@
-const  Role  = require('../models/Role'); // Importez le modèle de Role si nécessaire
+'use strict';
+const { Model, DataTypes } = require('sequelize');
+const sequelize = require('../config/db');
+
+
+
+
+const  GroupActivity  = require('../models/GroupActivity');
+const  Role  = require('../models/Role'); 
 const  User  = require('../models/User');
+
+
 const  Activity  = require('../models/Activity'); // Assurez-vous que le modèle d'Activité est bien importé
 const ActivityUser = require('../models/ActivityUsers')
-const GroupActivity = require('../models/GroupActivity')
+
+
+
+
+
+/* Activity.associate({ User }); */
+ 
+    /*  Activity.associate({ GroupActivity }); */   
+/* GroupActivity.associate({ Activity });  */
+
+// Configurer les associations
+Activity.belongsTo(GroupActivity, { foreignKey: 'groupe_activity_id', as: 'grou' });
+GroupActivity.hasMany(Activity, { foreignKey: 'groupe_activity_id', as: 'activities' });
+
+
+
+
+
+
+
+
+
+
 
 const createActivity = async (req, res) => {
   try {
@@ -68,19 +100,20 @@ const getUserActivities = async (req, res) => {
   
       // Extraire les IDs des activités
       const activityIds = userActivities.map(activityUser => activityUser.activity_id);
-  
+      
+      
       // Récupérer les activités associées à ces IDs
       const activities = await Activity.findAll({
         where: {
           id: activityIds,  // On filtre les activités par leurs IDs
         },
-/*        include: [
+       include: [
             {
               model: GroupActivity,
-              as: 'group_activities', 
-              attributes: ['id', 'name'], 
+              as: 'grou', 
+              
             },
-          ],  */
+          ],  
        
       });
   

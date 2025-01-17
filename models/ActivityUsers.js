@@ -11,7 +11,7 @@ const ActivityUser = sequelize.define('ActivityUser', {
     type: DataTypes.INTEGER,
     allowNull: false,
     references: {
-      model: 'Activities',  // Assurez-vous que la table Activities est bien définie
+      model: 'activities',  // Assurez-vous que la table Activities est bien définie
       key: 'id',
     },
   },
@@ -19,11 +19,12 @@ const ActivityUser = sequelize.define('ActivityUser', {
     type: DataTypes.INTEGER,
     allowNull: false,
     references: {
-      model: 'Users',  // Assurez-vous que la table Users est bien définie
+      model: 'users',  // Assurez-vous que la table Users est bien définie
       key: 'id',
     },
   },
 }, {
+  sequelize,
   tableName: 'activityuser',
   timestamps: false,  // Si tu n'as pas besoin des timestamps (createdAt, updatedAt)
 });
