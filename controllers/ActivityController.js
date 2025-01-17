@@ -269,10 +269,39 @@ const showActivities = async (req, res) => {
 
 
 
+const updateActivityName = async (req, res) => {
+  try {
+    // 1. Récupérer l'ID de l'activité et le nouveau nom depuis le corps de la requête
+    const { activity_id, newName } = req.body;
+
+    // Vérifier que les champs sont présents
+    if (!activity_id || !newName) {
+      return res.status(400).json({ message: "Les champs 'activity_id' et 'newName' sont obligatoires." });
+    }
+
+    // 2. Vérifier si l'activité existe
+    const activity = await Activity.findByPk(activity_id);
+    if (!activity) {
+      return res.status(404).json({ message: 'Activité non trouvée.' });
+    }
+
+    // 3. Mettre à jour le nom de l'activité
+    activity.name = newName;
+    await activity.save();
+
+    return res.status(200).json({ message: 'Nom de l\'activité mis à jour avec succès.', activity });
+  } catch (error) {
+    console.error('Erreur lors de la mise à jour du nom de l\'activité:', error);
+    return res.status(500).json({ message: 'Erreur interne du serveur.' });
+  }
+};
 
 
 
-module.exports = { createActivity, getUserActivities, getActivityUserCount, deleteActivity, showActivities };
+
+
+
+module.exports = { createActivity, getUserActivities, getActivityUserCount, deleteActivity, showActivities, updateActivityName };
 
 
 
