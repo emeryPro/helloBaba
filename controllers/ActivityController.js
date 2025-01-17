@@ -1,7 +1,7 @@
 'use strict';
 const { Model, DataTypes } = require('sequelize');
 const sequelize = require('../config/db');
-
+const { Op } = require('sequelize');
 
 
 
@@ -135,11 +135,58 @@ const getUserActivities = async (req, res) => {
 
 
 
+  
+
+const getActivityUserCount = async (req, res) => {
+  try {
+    const userId = req.user.userId;  // Supposons que l'ID de l'utilisateur soit extrait du token (authentification)
+
+    // Étape 1 : Chercher tous les activity_id liés à l'utilisateur connecté
+    const userActivities = await ActivityUser.findAll({
+      where: { user_id: userId },
+      attributes: ['activity_id'],  // On ne récupère que les activity_id pour cet utilisateur
+    });
+
+    if (!userActivities || userActivities.length === 0) {
+      return res.status(404).json({ message: 'Aucune activité trouvée pour cet utilisateur.' });
+    }
+
+    // Extraire les IDs des activités
+    const activityIds = userActivities.map(activity => activity.activity_id);
+
+    // Étape 2 : Chercher les user_id pour chaque activity_id
+    const activityCounts = await ActivityUser.findAll({
+      where: {
+        activity_id: {
+          [Op.in]: activityIds,  // Cherche les user_id associés aux activity_id récupérés
+        },
+      },
+      attributes: ['activity_id', [sequelize.fn('COUNT', sequelize.col('user_id')), 'userCount']],  // Compter les user_id pour chaque activity_id
+      group: ['activity_id'],  // Grouper par activity_id pour compter le nombre d'utilisateurs pour chaque activité
+    });
+
+    // Étape 3 : Retourner les résultats
+    if (activityCounts.length === 0) {
+      return res.status(404).json({ message: 'Aucun utilisateur trouvé pour ces activités.' });
+    }
+
+    return res.status(200).json({
+      message: 'Comptage des utilisateurs par activité récupéré avec succès.',
+      activityCounts,  // Ce sera un tableau d'objets avec l'activity_id et le nombre d'utilisateurs
+    });
+
+  } catch (error) {
+    console.error('Erreur lors de la récupération des utilisateurs par activité:', error);
+    return res.status(500).json({ message: 'Erreur interne du serveur.' });
+  }
+};
 
 
 
 
-module.exports = { createActivity, getUserActivities };
+
+
+module.exports = { createActivity, getUserActivities, getActivityUserCount };
 
 
 
