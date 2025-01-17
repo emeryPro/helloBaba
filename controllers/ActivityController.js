@@ -25,10 +25,10 @@ const ActivityUser = require('../models/ActivityUsers')
 // Configurer les associations
 Activity.belongsTo(GroupActivity, { foreignKey: 'groupe_activity_id', as: 'grou' });
 GroupActivity.hasMany(Activity, { foreignKey: 'groupe_activity_id', as: 'activities' });
+/* Role.associate({ User }); */
+/* User.associate({ Role }); */
 
-
-
-
+User.belongsTo(Role, { foreignKey: 'role_id', as: 'role' });
 
 
 
@@ -183,10 +183,96 @@ const getActivityUserCount = async (req, res) => {
 
 
 
+const deleteActivity = async (req, res) => {
+  try {
+    const activityId = req.params.id;
+
+    // Vérifier d'abord si l'activité existe
+    const activity = await Activity.findByPk(activityId);
+    if (!activity) {
+      return res.status(404).json({ message: 'Activité non trouvée.' });
+    }
+
+    // Supprimer l'activité elle-même (les références dans d'autres tables seront supprimées en cascade)
+    await activity.destroy();
+
+    return res.status(200).json({ message: 'Activité supprimée avec succès.' });
+  } catch (error) {
+    console.error('Erreur lors de la suppression de l\'activité:', error);
+    return res.status(500).json({ message: 'Erreur interne du serveur.' });
+  }
+};
 
 
 
-module.exports = { createActivity, getUserActivities, getActivityUserCount };
+
+
+const showActivities = async (req, res) => {
+  try {
+    const activityId = req.params.id;  // L'ID de l'activité passé dans l'URL
+
+    // Vérifier si l'activité existe
+    const activity = await Activity.findByPk(activityId);
+    if (!activity) {
+      return res.status(404).json({ message: 'Activité non trouvée.' });
+    }
+
+    // Récupérer tous les utilisateurs associés à cette activité
+    const activityUsers = await ActivityUser.findAll({
+      where: { activity_id: activityId },
+      attributes: ['user_id'],  // Récupérer seulement les user_id
+    });
+
+    // Si aucun utilisateur n'est associé à l'activité
+    if (!activityUsers || activityUsers.length === 0) {
+      return res.status(404).json({ message: 'Aucun utilisateur associé à cette activité.' });
+    }
+
+    // Récupérer les détails des utilisateurs associés à l'activité
+    const userIds = activityUsers.map(user => user.user_id);  // Extraire les user_id des résultats de ActivityUser
+    const users = await User.findAll({
+      where: { id: userIds },
+      attributes: ['id',  'lastname', 'firstname','mail','phonenumber'],
+      include: [
+        {
+          model: Role,
+          as: 'role',  // Récupérer le rôle associé à l'utilisateur
+          attributes: ['name'],  // On ne récupère que le nom du rôle
+        }
+      ],
+        // Récupérer les informations des utilisateurs
+    });
+
+    // Retourner les informations de l'activité et des utilisateurs associés
+    return res.status(200).json({
+      activity: {
+        id: activity.id,
+        name: activity.name,
+        description: activity.description,
+        // Ajouter d'autres informations si nécessaire
+      },
+      users: users.map(user => ({
+        id: user.id,
+        firstname: user.firstname,
+        lastname: user.lastname,
+        phonenumber: user.phonenumber,
+        mail: user.mail,
+        role: user.role.name,  // Nom du rôle de l'utilisateur
+      })),
+    });
+
+  } catch (error) {
+    console.error('Erreur lors de la récupération des activités:', error);
+    return res.status(500).json({ message: 'Erreur interne du serveur.' });
+  }
+};
+
+
+
+
+
+
+module.exports = { createActivity, getUserActivities, getActivityUserCount, deleteActivity, showActivities };
 
 
 

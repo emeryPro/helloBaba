@@ -5,7 +5,7 @@ const ActivityUser = require('../models/ActivityUsers')
 const { Op } = require('sequelize');
 // Créer un utilisateur
 
-
+User.belongsTo(Role, { foreignKey: 'role_id', as: 'role2' });
 
 // Créer un utilisateur
 const createUser = async (req, res) => {
@@ -223,6 +223,13 @@ const getUsersByDirector = async (req, res) => {
     const users = await User.findAll({
       where: { id: userIds },  // Récupérer les utilisateurs associés aux activity_ids
       attributes: ['id', 'firstname', 'lastname', 'mail'],  // Sélectionner les attributs nécessaires
+      include: [
+        {
+          model: Role,
+          as: 'role2',  // Récupérer le rôle associé à l'utilisateur
+          attributes: ['name'],  // On ne récupère que le nom du rôle
+        }
+      ],
     });
 
     // Retourner les utilisateurs associés aux activités du directeur
