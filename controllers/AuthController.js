@@ -2,6 +2,7 @@ const  User  = require('../models/User');
 const bcrypt = require('bcrypt');
 const jwt = require('jsonwebtoken');
 const Token = require('../models/Token')
+const Role = require('../models/Role')
 const loginUser = async (req, res) => {
   try {
     const { numberPhone, password } = req.body;
@@ -21,6 +22,13 @@ const loginUser = async (req, res) => {
     }
 
    
+
+    const role = await Role.findOne({ where: { id: user.role_id } });
+
+    if (!role) {
+      return res.status(500).json({ message: 'Rôle introuvable.' });
+    }
+
    /*  const token = jwt.sign(
       { userId: user.id, role: user.role_id }, // Payload
       process.env.JWT_SECRET, // Clé secrète
@@ -61,6 +69,7 @@ expirationDate.setMinutes(expirationDate.getMinutes() + 30); // Ajouter 3 minute
         firstname: user.firstname,
         lastname: user.lastname,
         email: user.mail,
+        role: role.name,
       },
     });
   } catch (error) {

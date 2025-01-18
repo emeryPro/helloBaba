@@ -301,7 +301,13 @@ const updateActivityName = async (req, res) => {
 
 
 
-module.exports = { createActivity, getUserActivities, getActivityUserCount, deleteActivity, showActivities, updateActivityName };
+module.exports = { createActivity,
+                   getUserActivities,
+                   getActivityUserCount, 
+                   deleteActivity, 
+                   showActivities, 
+                   updateActivityName 
+                  };
 
 
 
