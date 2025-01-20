@@ -26,6 +26,12 @@ class Activity extends Model {
           foreignKey: 'activity_id', 
           as: 'users',
         }); */
+
+        Activity.hasMany(models.Order, {
+          foreignKey: 'activity_id',
+          as: 'orders',
+        });
+        
     
 
     }

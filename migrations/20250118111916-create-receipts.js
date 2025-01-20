@@ -3,11 +3,32 @@
 /** @type {import('sequelize-cli').Migration} */
 module.exports = {
   async up (queryInterface, Sequelize) {
-    await queryInterface.createTable('tontines', {
+    await queryInterface.createTable('receipts', {
       id: {
         type: Sequelize.INTEGER,
         primaryKey: true,
         autoIncrement: true,
+      },
+      payment_reference: {
+        type: Sequelize.STRING,
+        allowNull: false,
+        unique: true,
+      },
+      tontine_id: {
+        type: Sequelize.INTEGER,
+        references: {
+          model: 'tontines',
+          key: 'id',
+        },
+        allowNull: false,
+      },
+      invoice_id: {
+        type: Sequelize.INTEGER,
+        references: {
+          model: 'invoices',
+          key: 'id',
+        },
+        allowNull: false,
       },
       participant_id: {
         type: Sequelize.INTEGER,
@@ -17,40 +38,17 @@ module.exports = {
         },
         allowNull: false,
       },
-      activity_id: {
-        type: Sequelize.INTEGER,
-        allowNull: false,
-        references: {
-          model: 'activities',
-          key: 'id',  
-        },
-        onUpdate: 'CASCADE',
-        onDelete: 'CASCADE',
-      },
-      card_number: {
-        type: Sequelize.STRING,
-        unique: true,
-        allowNull: false,
-      },
-      amount_per_payment: {
+      amount_paid: {
         type: Sequelize.DECIMAL(10, 2),
         allowNull: false,
       },
-      payment_frequency: {
-        type: Sequelize.ENUM('daily', 'weekly', 'monthly', 'quarterly'),
-        allowNull: false,
-      },
-      start_date: {
+      receipt_date: {
         type: Sequelize.DATE,
-        allowNull: false,
+        defaultValue: Sequelize.NOW,
       },
-      end_date: {
-        type: Sequelize.DATE,
-        allowNull: true,
-      },
-      total_contributed: {
-        type: Sequelize.DECIMAL(10, 2),
-        defaultValue: 0.00,
+      payment_status: {
+        type: Sequelize.ENUM('paid', 'unpaid'),
+        defaultValue: 'paid',
       },
       createdAt: {
         type: Sequelize.DATE,

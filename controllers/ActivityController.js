@@ -223,6 +223,10 @@ const showActivities = async (req, res) => {
       attributes: ['user_id'],  // Récupérer seulement les user_id
     });
 
+    const group_activity = await GroupActivity.findByPk(activity.groupe_activity_id);
+    if (!group_activity) {
+      return res.status(404).json({ message: 'Group Activité non trouvée.' });
+    }
     // Si aucun utilisateur n'est associé à l'activité
     if (!activityUsers || activityUsers.length === 0) {
       return res.status(404).json({ message: 'Aucun utilisateur associé à cette activité.' });
@@ -259,6 +263,10 @@ const showActivities = async (req, res) => {
         mail: user.mail,
         role: user.role.name,  // Nom du rôle de l'utilisateur
       })),
+      group_activity: {
+        id: group_activity.id,
+        name: group_activity.name,
+      }
     });
 
   } catch (error) {

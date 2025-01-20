@@ -31,6 +31,23 @@ class User extends Model {
     foreignKey: 'user_id',
     as: 'userActivities',
   });
+
+  User.hasMany(models.TransactionSummary, {
+    foreignKey: 'summary_by',
+    as: 'transactionSummaries',
+  });
+
+  User.hasMany(models.DayClosure, {
+    foreignKey: 'approved_by',
+    as: 'dayClosures',
+  });
+
+  User.hasMany(models.Order, {
+    foreignKey: 'user_id',
+    as: 'orders',
+  });
+  
+  
   
   }
 }
