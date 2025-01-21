@@ -183,7 +183,7 @@ const registerParticipant = async (req, res) => {
      
         attributes: ['id', 'first_name', 'last_name', 'phone', 'date_enrolled'],
         include: {
-          model: Activity,  // Assurez-vous que la relation entre Activity et GroupActivity existe
+          model: Activity,  
           as: 'activiti',
          
         },
