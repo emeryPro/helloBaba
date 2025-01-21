@@ -2,7 +2,7 @@
 const { Model, DataTypes } = require('sequelize');
 const sequelize = require('../config/db');
 const { Op } = require('sequelize');
-const {Role} = require('../models/Role')
+const Role = require('../models/Role')
 const Participant = require('../models/Participant')
 const User = require('../models/User')
 const Tontine = require('../models/Tontine')
@@ -11,7 +11,7 @@ const Activity = require('../models/Activity')
 
 
 Activity.belongsTo(GroupActivity, { foreignKey: 'groupe_activity_id', as: 'gr' });
-
+Participant.belongsTo(Activity, { foreignKey: 'activity_id', as: 'activiti' });
 const registerParticipant = async (req, res) => {
     try {
       const { activity_id, first_name, last_name, phone, amount, frequency } = req.body;
@@ -180,7 +180,13 @@ const registerParticipant = async (req, res) => {
       // Récupérer les participants liés à cette activité
       const participants = await Participant.findAll({
         where: { activity_id },
+     
         attributes: ['id', 'first_name', 'last_name', 'phone', 'date_enrolled'],
+        include: {
+          model: Activity,  // Assurez-vous que la relation entre Activity et GroupActivity existe
+          as: 'activiti',
+         
+        },
       });
   
       return res.status(200).json({

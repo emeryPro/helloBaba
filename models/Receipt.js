@@ -70,6 +70,15 @@ Receipt.init(
       type: DataTypes.ENUM('paid', 'unpaid'),
       defaultValue: 'paid',
     },
+    user_id: {
+      type: DataTypes.INTEGER,
+      allowNull: false,
+      references: {
+        model: 'users', // Nom de la table des utilisateurs
+        key: 'id', // Clé primaire de la table `users`
+      },
+      onDelete: 'CASCADE',
+    },
   },
   {
     sequelize,
