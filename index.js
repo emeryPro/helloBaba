@@ -7,6 +7,7 @@ const authRoutes = require('./routes/authRoutes');
 const activityRoute = require('./routes/activityRoute')
 const roleRoute = require('./routes/roleRoute')
 const participantRoute = require('./routes/participantRoute')
+const invoiceRoute = require('./routes/invoiceRoute')
 const cors = require('cors');
 require('dotenv').config(); // Charger les variables d'environnement
 require('./config/cronJobs');
@@ -48,6 +49,7 @@ app.use('/api', authRoutes);
 app.use('/api',activityRoute);
 app.use('/api',roleRoute);
 app.use('/api',participantRoute);
+app.use('/api',invoiceRoute);
 // Tester la connexion à la base de données
 sequelize.authenticate()
   .then(() => {
