@@ -8,7 +8,7 @@ const User = require('../models/User')
 const Tontine = require('../models/Tontine')
 const GroupActivity = require('../models/GroupActivity')
 const Activity = require('../models/Activity')
-
+const { Sequelize } = require('sequelize');
 
 Activity.belongsTo(GroupActivity, { foreignKey: 'groupe_activity_id', as: 'gr' });
 Participant.belongsTo(Activity, { foreignKey: 'activity_id', as: 'activiti' });
@@ -181,7 +181,7 @@ const registerParticipant = async (req, res) => {
       const participants = await Participant.findAll({
         where: { activity_id },
      
-        attributes: ['id', 'first_name', 'last_name', 'phone', 'date_enrolled'],
+        attributes: ['id', 'first_name', 'last_name', 'phone', 'date_enrolled', [Sequelize.literal(`'tontine'`), 'sub_activities']],
         include: {
           model: Activity,  
           as: 'activiti',
