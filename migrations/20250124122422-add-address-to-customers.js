@@ -3,10 +3,9 @@
 /** @type {import('sequelize-cli').Migration} */
 module.exports = {
   async up (queryInterface, Sequelize) {
-    await queryInterface.addColumn('tontines', 'duration', {
-      type: Sequelize.INTEGER,
-      allowNull: false, // Si ce champ est requis, sinon mettez `true`
-      defaultValue: 0,  // Vous pouvez définir une valeur par défaut
+    await queryInterface.addColumn('customers', 'address', {
+      type: Sequelize.STRING,
+      allowNull: true, // Mettez `false` si ce champ est obligatoire
     });
   },
 

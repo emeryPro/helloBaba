@@ -2,7 +2,7 @@
 const express = require('express');
 const { Sequelize } = require('sequelize');
 const userRoutes = require('./routes/userRoutes');
-const enterpriseRoutes = require('./routes/enterpriseRoutes');
+
 const authRoutes = require('./routes/authRoutes');
 const activityRoute = require('./routes/activityRoute')
 const roleRoute = require('./routes/roleRoute')
@@ -10,6 +10,7 @@ const participantRoute = require('./routes/participantRoute')
 const invoiceRoute = require('./routes/invoiceRoute')
 const receiptRoute = require('./routes/receiptRoute')
 const tontineRoute = require('./routes/tontineRoute')
+const customerRoute = require('./routes/customerRoute')
 const cors = require('cors');
 require('dotenv').config(); // Charger les variables d'environnement
 require('./config/cronJobs');
@@ -46,7 +47,7 @@ app.use(express.json());
 
 // Utilisez les routes
 app.use('/api', userRoutes);
-app.use('/api', enterpriseRoutes);
+
 app.use('/api', authRoutes);
 app.use('/api',activityRoute);
 app.use('/api',roleRoute);
@@ -54,6 +55,8 @@ app.use('/api',participantRoute);
 app.use('/api',invoiceRoute);
 app.use('/api',receiptRoute)
 app.use('/api',tontineRoute)
+app.use('/api',customerRoute)
+
 // Tester la connexion à la base de données
 sequelize.authenticate()
   .then(() => {

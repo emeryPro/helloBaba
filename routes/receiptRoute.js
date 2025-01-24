@@ -4,7 +4,7 @@ const { validateToken } = require('../middlewares/validateToken');
 const {createReceipt} = require('../controllers/ReceiptController.js')
 
 
-router.post('/create_receipt', validateToken, createReceipt);
-
+/* router.post('/create_receipt', validateToken, createReceipt);
+ */
 
 module.exports = router;

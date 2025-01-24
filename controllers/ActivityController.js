@@ -41,7 +41,7 @@ const createActivity = async (req, res) => {
     // Vérifier que l'utilisateur connecté est un "Director"
     const userId = req.user.userId;
     const roleId = req.user.role;
-
+    
     // Récupérer le rôle de l'utilisateur en fonction de son ID
     const role = await Role.findByPk(roleId);
 
@@ -187,6 +187,15 @@ const deleteActivity = async (req, res) => {
   try {
     const activityId = req.params.id;
 
+    const roleId = req.user.role;
+    
+    // Récupérer le rôle de l'utilisateur en fonction de son ID
+    const role = await Role.findByPk(roleId);
+
+    if (!role || role.name !== 'Director') {
+      return res.status(403).json({ message: 'Accès interdit. Seul un Directeur peut supprimer une activité.' });
+    }
+
     // Vérifier d'abord si l'activité existe
     const activity = await Activity.findByPk(activityId);
     if (!activity) {
@@ -281,6 +290,16 @@ const updateActivityName = async (req, res) => {
   try {
     // 1. Récupérer l'ID de l'activité et le nouveau nom depuis le corps de la requête
     const { activity_id, newName } = req.body;
+
+  const roleId = req.user.role;
+    
+    // Récupérer le rôle de l'utilisateur en fonction de son ID
+    const role = await Role.findByPk(roleId);
+
+    if (!role || role.name !== 'Director') {
+      return res.status(403).json({ message: 'Accès interdit. Seul un Directeur peut modifier une activité.' });
+    }
+
 
     // Vérifier que les champs sont présents
     if (!activity_id || !newName) {

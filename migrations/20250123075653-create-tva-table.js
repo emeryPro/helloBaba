@@ -3,61 +3,44 @@
 /** @type {import('sequelize-cli').Migration} */
 module.exports = {
   async up (queryInterface, Sequelize) {
-    await queryInterface.createTable('participants', {
+    await queryInterface.createTable('tva', {
       id: {
         type: Sequelize.INTEGER,
-        allowNull: false,
         autoIncrement: true,
         primaryKey: true,
-      },
-      user_id: {
-        type: Sequelize.INTEGER,
         allowNull: false,
-        references: {
-          model: 'users',
-          key: 'id',
-        },
-        onDelete: 'CASCADE',
+      },
+      value: {
+        type: Sequelize.FLOAT,
+        allowNull: false,
       },
       activity_id: {
         type: Sequelize.INTEGER,
         allowNull: false,
         references: {
           model: 'activities',
-          key: 'id',
+          key: 'id',  
         },
         onUpdate: 'CASCADE',
         onDelete: 'CASCADE',
       },
-      first_name: {
-        type: Sequelize.STRING(255),
+      setting_id: {
+        type: Sequelize.INTEGER,
         allowNull: false,
+        references: {
+          model: 'settings',
+          key: 'id',  
+        },
+        onUpdate: 'CASCADE',
+        onDelete: 'CASCADE',
       },
-      last_name: {
-        type: Sequelize.STRING(255),
-        allowNull: false,
-      },
-      phone: {
-        type: Sequelize.STRING(255),
-        allowNull: true,
-      },
-      date_enrolled: {
-        type: Sequelize.DATE,
-        defaultValue: Sequelize.NOW,
-      },
-      status: {
-        type: Sequelize.ENUM('active', 'inactive', 'suspended'),
-        defaultValue: 'active',
-      },
-      created_at: {
+      createdAt: {
         type: Sequelize.DATE,
         allowNull: false,
-        defaultValue: Sequelize.NOW,
       },
-      updated_at: {
+      updatedAt: {
         type: Sequelize.DATE,
         allowNull: false,
-        defaultValue: Sequelize.NOW,
       },
     });
   },

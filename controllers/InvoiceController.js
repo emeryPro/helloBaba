@@ -1,264 +1,235 @@
 
-const Tontine = require('../models/Tontine');
+const sequelize = require('../config/db');
 const Invoice = require('../models/Invoice')
-const Participant = require('../models/Participant')
-const Role = require('../models/Role')
+const InvoiceItem = require('../models/InvoiceItem')
+const Activity = require('../models/Activity')
+const Customer = require('../models/Customers')
+const generateInvoiceNumber = require('../utils/generateInvoiceNumber')
+const InvoiceItemForm = require('../models/InvoiceItemForm')
+const jwt = require('jsonwebtoken');
 
 
-
-
-Invoice.belongsTo(Tontine, { foreignKey: 'tontine_id', as: 'tont' });
-Tontine.belongsTo(Participant, { foreignKey: 'participant_id', as: 'particip' });
-
+Invoice.belongsTo(Customer, { foreignKey: 'customers_id', as: 'invoiceCustomer' });
+Invoice.belongsTo(Activity, { foreignKey: 'activity_id', as: 'invoiceActivity' });
+InvoiceItem.belongsTo(Invoice, { foreignKey: 'invoice_id', as: 'invoiceItem' });
+Invoice.hasMany(InvoiceItem, { foreignKey: 'invoice_id', as: 'invoiceItem' });
 const createInvoice = async (req, res) => {
-  const { tontine_id, amount_paid } = req.body;
-  const user_id = req.user.userId;
-
-
-  const userRoleId = req.user.role;
-  if (!userRoleId) {
-    return res.status(403).json({ message: "Rôle de l'utilisateur connecté non fourni." });
-  }
+    const t = await sequelize.transaction(); // Transaction pour garantir la cohérence des données
   
-  const directorRole = await Role.findOne({ where: { name: 'director' } });
-  const secretaryRole = await Role.findOne({ where: { name: 'secretary' } });
+    try {
+      // Récupérer les données envoyées par le frontend
+      const { activity_id, customer_id, items } = req.body; // items est un tableau d'objets { designation, json }
   
-  if (
-    (!directorRole || parseInt(userRoleId) !== directorRole.id) &&
-    (!secretaryRole || parseInt(userRoleId) !== secretaryRole.id)
-  ) {
-    return res
-      .status(403)
-      .json({ message: "Seuls les directeurs ou secrétaires peuvent creer les factures" });
-  }
-  try {
-    // Récupérer les informations de la tontine
-    const tontine = await Tontine.findByPk(tontine_id);
-    if (!tontine) {
-      return res.status(404).json({ message: 'Tontine non trouvée.' });
-    }
-
-
-
-    const { amount_per_payment, payment_frequency, duration } = tontine;
-
-    // Vérifier combien de périodes peuvent être couvertes
-    const periodsCovered = Math.floor(amount_paid / amount_per_payment);
-    if (periodsCovered === 0) {
-      return res
-        .status(400)
-        .json({ message: 'Le montant payé est insuffisant pour une période complète.' });
-    }
-
-    // Trouver le nombre de paiements déjà effectués
-    const invoicesPaid = await Invoice.count({
-      where: { tontine_id, participant_id: tontine.participant_id, status: 'paid' },
-    });
-
-    // Vérifier si on dépasse la durée totale
-    const remainingPeriods = duration - invoicesPaid;
-    if (periodsCovered > remainingPeriods) {
-      return res
-        .status(400)
-        .json({ message: `Le montant payé dépasse la durée totale restante (${remainingPeriods} périodes).` });
-    }
-
-    // Créer des factures pour chaque période couverte
-    const invoices = [];
-    for (let i = 0; i < periodsCovered; i++) {
-      const dueDate = calculateDueDate(payment_frequency, invoicesPaid + i + 1); // Calculer la date d'échéance
-      invoices.push({
-        tontine_id,
-        user_id,
-        participant_id: tontine.participant_id,
-        amount_due: amount_per_payment,
-        due_date: dueDate,
-        status: 'unpaid', // Par défaut, si le paiement est immédiat
-        payment_date: new Date(),
-      });
-    }
-
-    // Enregistrer les factures
-    await Invoice.bulkCreate(invoices);
-
-    res.status(201).json({ message: 'Factures enregistrées avec succès.', invoices });
-  } catch (error) {
-    console.error(error);
-    res.status(500).json({ message: 'Erreur lors de la création des factures.' });
-  }
-};
-
-// Fonction pour calculer la date d'échéance
-function calculateDueDate(payment_frequency, period) {
-  const now = new Date();
-  switch (payment_frequency) {
-    case 'daily':
-      return new Date(now.setDate(now.getDate() + period - 1));
-    case 'weekly':
-      return new Date(now.setDate(now.getDate() + (period - 1) * 7));
-    case 'monthly':
-      return new Date(now.setMonth(now.getMonth() + period - 1));
-    default:
-      throw new Error('Fréquence de paiement inconnue.');
-  }
-}
-
-
-
-
-const getInvoicesByTontine = async (req, res) => {
-  const { tontine_id } = req.params;
-
-  const userRoleId = req.user.role;
-if (!userRoleId) {
-  return res.status(403).json({ message: "Rôle de l'utilisateur connecté non fourni." });
-}
-
-const directorRole = await Role.findOne({ where: { name: 'director' } });
-const secretaryRole = await Role.findOne({ where: { name: 'secretary' } });
-
-if (
-  (!directorRole || parseInt(userRoleId) !== directorRole.id) &&
-  (!secretaryRole || parseInt(userRoleId) !== secretaryRole.id)
-) {
-  return res
-    .status(403)
-    .json({ message: "Seuls les directeurs ou secrétaires peuvent voire les factures" });
-}
-
-
-  try {
-    // Vérifier si tontine_id est fourni
-    if (!tontine_id) {
-      return res.status(400).json({ message: 'L\'ID de la tontine est requis.' });
-    }
-
-    // Récupérer les factures pour la tontine spécifiée
-    const invoices = await Invoice.findAll({
-      where: { tontine_id },
-      order: [['status', 'ASC']], // Classement par statut dans l'ordre alphabétique
-    });
-
-    // Vérifier si des factures ont été trouvées
-    if (invoices.length === 0) {
-      return res.status(404).json({ message: 'Aucune facture trouvée pour cette tontine.' });
-    }
-
-    
-
-    res.status(200).json({
-      message: 'Factures récupérées avec succès.',
-      data: invoices,
-    });
-  } catch (error) {
-    console.error(error);
-    res.status(500).json({ message: 'Erreur lors de la récupération des factures.' });
-  }
-};
-
-
-
-
-const getUnpaidInvoicesByActivity = async (req, res) => {
-  try {
-    const { activity_id } = req.params; // Récupérer l'ID de l'activité depuis les paramètres de la requête
-
-    
-    
-    
-    const userRoleId = req.user.role;
-    if (!userRoleId) {
-      return res.status(403).json({ message: "Rôle de l'utilisateur connecté non fourni." });
-    }
-    
-    const directorRole = await Role.findOne({ where: { name: 'director' } });
-    const secretaryRole = await Role.findOne({ where: { name: 'Cashier' } });
-    
-    if (
-      (!directorRole || parseInt(userRoleId) !== directorRole.id) &&
-      (!secretaryRole || parseInt(userRoleId) !== secretaryRole.id)
-    ) {
-      return res
-        .status(403)
-        .json({ message: "Seuls les directeurs ou caissiers peuvent voire les factures" });
-    }
-    
-    
-    
-    
-    // Vérifier si l'ID de l'activité est fourni
-    if (!activity_id) {
-      return res.status(400).json({ message: "L'ID de l'activité est requis." });
-    }
-
-    // Récupérer les tontines associées à l'activity_id donné
-    const tontines = await Tontine.findAll({
-      where: { activity_id },
-      attributes: ['id'], // On ne récupère que les IDs des tontines
-    });
-
-    // Vérifier si des tontines sont trouvées
-    if (tontines.length === 0) {
-      return res.status(404).json({ message: "Aucune tontine trouvée pour cette activité." });
-    }
-
-    // Extraire les IDs des tontines
-    const tontineIds = tontines.map((tontine) => tontine.id);
-
-    // Récupérer les factures non payées associées aux tontines trouvées
-    const unpaidInvoices = await Invoice.findAll({
-      where: {
-        tontine_id: tontineIds, // Filtrer par les IDs des tontines
-        status: 'unpaid', // Factures non payées
-      },
-      order: [['createdAt', 'DESC']], // Trier par date (plus récent au plus ancien)
-
-      include: [
+      // Vérification si l'activité existe
+      const activity = await Activity.findByPk(activity_id);
+      if (!activity) {
+        return res.status(404).json({ message: 'Activité non trouvée.' });
+      }
+  
+      // Récupérer le group_activity_id à partir de l'activité
+      const group_activity_id = activity.groupe_activity_id;
+  
+      // Si customer_id est envoyé, on récupère le client associé
+      let customer = null;
+      if (customer_id) {
+        customer = await Customer.findByPk(customer_id);
+        if (!customer) {
+          return res.status(404).json({ message: 'Client non trouvé.' });
+        }
+      }
+  
+      const userId = req.user.userId;
+  
+      // Créer la facture
+      const invoiceNumber = await generateInvoiceNumber(); // Générer un numéro de facture
+      const newInvoice = await Invoice.create(
         {
-          model: Tontine, // Inclure les informations de la tontine
-          as: 'tont', // Assurez-vous que l'alias correspond à votre relation
-          attributes: ['id', 'card_number', 'amount_per_payment', 'payment_frequency'], // Champs spécifiques à inclure
-          include: [
-            {
-              model: Participant, // Inclure les informations du participant
-              as: 'particip', // Assurez-vous que l'alias correspond à votre relation
-              attributes: ['id', 'first_name', 'last_name', 'phone'], // Champs spécifiques du participant
-            },
-          ],
+          facturenumber: invoiceNumber,
+          statut: 'Pending', // Statut initial de la facture
+          customers_id: customer ? customer.id : null, // Si un client est fourni
+          activity_id: activity.id,
+          group_activity_id: group_activity_id,
+          createBy: userId,
         },
-      ],
-
-
-
-
-    });
-
-    // Vérifier si des factures non payées sont trouvées
-    if (unpaidInvoices.length === 0) {
-      return res.status(404).json({ message: "Aucune facture non payée trouvée pour ces tontines." });
+        { transaction: t }
+      );
+  
+      // Ajouter les items à la facture
+      const invoiceItems = items.map(item => ({
+        designation: 'p',
+        json: item.json,
+        invoice_id: newInvoice.id,
+      }));
+  
+      // Créer les items associés à la facture dans InvoiceItem
+      await InvoiceItem.bulkCreate(invoiceItems, { transaction: t });
+  
+      // Commit la transaction
+      await t.commit();
+  
+      // Retourner la facture créée avec les items associés
+      return res.status(201).json({
+        message: 'Facture et items créés avec succès.',
+        invoice: newInvoice,
+        items: invoiceItems,
+      });
+    } catch (error) {
+      // Si une erreur survient, annuler la transaction
+      await t.rollback();
+      console.error(error);
+      return res.status(500).json({ message: 'Erreur lors de la création de la facture.' });
     }
-
-    // Retourner les factures non payées
-    return res.status(200).json({
-      message: "Factures non payées récupérées avec succès.",
-      invoices: unpaidInvoices,
-    });
-  } catch (error) {
-    console.error(error);
-    return res.status(500).json({ message: "Erreur serveur.", error: error.message });
-  }
-};
+  };
 
 
 
+  const getInvoiceDetails = async (req, res) => {
+    const { id } = req.params; // L'ID de la facture passé dans l'URL
+  
+    try {
+      // Récupérer la facture avec les relations associées
+      const invoice = await Invoice.findOne({
+        where: { id },
+        include: [
+          {
+            model: Customer, // Inclure le client associé à la facture
+            as: 'invoiceCustomer', // Alias pour la relation avec Customer
+            attributes: ['id', 'first_name', 'last_name', 'phonenumber','address'], // Attributs du client
+            required: false, // Client facultatif, même si non associé
+          },
+          {
+            model: Activity, // Inclure l'activité associée à la facture
+            as: 'invoiceActivity',
+            attributes: ['id', 'name'], // Attributs de l'activité
+            required: true, // Activité obligatoire
+          },
+          {
+            model: InvoiceItem, // Inclure les items associés
+            as: 'invoiceItem', // Alias pour la relation avec InvoiceItem
+            attributes: ['id',  'json'], // Attributs des items
+            required: false, // Items facultatifs
+          },
+        ],
+      });
+  
+      // Vérifier si la facture existe
+      if (!invoice) {
+        return res.status(404).json({ message: 'Facture non trouvée.' });
+      }
+  
+      // Retourner les informations de la facture avec ses relations
+      return res.status(200).json({
+        message: 'Facture trouvée avec succès.',
+        invoice,
+      });
+    } catch (error) {
+      console.error(error);
+      return res.status(500).json({ message: 'Erreur lors de la récupération de la facture.' });
+    }
+  };
+  
+
+
+
+  const getInvoicesByActivityAndStatus = async (req, res) => {
+    try {
+      const { activity_id, statut } = req.params;
+  
+      // Interpréter le statut (true => "paid", false => "unpaid")
+      const invoiceStatus = (statut === 'true' || statut === '1') ? 'paid' : 'pending';
+  
+      // Étape 1: Récupérer les factures liées à l'activité et au statut donné
+      const invoices = await Invoice.findAll({
+        where: { activity_id, statut: invoiceStatus },
+        include: [
+          {
+            model: Customer,
+            as: 'invoiceCustomer',
+            attributes: ['id', 'first_name', 'last_name', 'phonenumber','address'], // Champs spécifiques pour le client
+            required: false,
+          },
+        ],
+      });
+  
+      // Vérifier si des factures existent
+      if (!invoices || invoices.length === 0) {
+        return res.status(404).json({ message: "Aucune facture trouvée pour cette activité et ce statut." });
+      }
+  
+      // Étape 2: Récupérer les items associés à chaque facture
+      const invoiceDetails = await Promise.all(
+        invoices.map(async (invoice) => {
+          const invoiceItems = await InvoiceItem.findAll({
+            where: { invoice_id: invoice.id },
+            attributes: ['id', 'designation', 'json'], // Champs spécifiques pour les items
+          });
+  
+          return {
+            invoice: {
+              id: invoice.id,
+              facturenumber: invoice.facturenumber,
+              statut: invoice.statut,
+              customer: invoice.invoiceCustomer,
+              createdAt: invoice.createdAt,
+              updatedAt: invoice.updatedAt,
+            },
+            invoiceItems,
+          };
+        })
+      );
+  
+      // Retourner les résultats
+      res.status(200).json(invoiceDetails);
+    } catch (error) {
+      console.error('Erreur lors de la récupération des factures :', error);
+      res.status(500).json({ message: 'Une erreur est survenue.', error });
+    }
+  };
+  
+
+
+
+  const getFormStructureByActivityId = async (req, res) => {
+    const { activityId } = req.params;
+  
+    try {
+      // Étape 1 : Vérifier si l'activité existe et récupérer son group_activity_id
+      const activity = await Activity.findOne({
+        where: { id: activityId },
+        attributes: ['groupe_activity_id'], // On récupère uniquement group_activity_id
+      });
+  
+      if (!activity) {
+        return res.status(404).json({ message: "Activité non trouvée." });
+      }
+  
+      const groupActivityId = activity.groupe_activity_id;
+  
+      // Étape 2 : Utiliser group_activity_id pour récupérer la structure du formulaire
+      const invoiceItemForm = await InvoiceItemForm.findOne({
+        where: { groupe_activity_id: groupActivityId },
+        attributes: ['structure'], // On récupère uniquement la structure
+      });
+  
+      if (!invoiceItemForm) {
+        return res.status(404).json({ message: "Structure de formulaire non trouvée pour ce groupe d'activités." });
+      }
+  
+      // Étape 3 : Retourner la structure de formulaire
+      return res.status(200).json({
+        message: "Structure de formulaire récupérée avec succès.",
+        data: JSON.parse(invoiceItemForm.structure), // Convertir le JSON stocké en objet JS
+      });
+    } catch (error) {
+      console.error("Erreur lors de la récupération de la structure de formulaire :", error);
+      return res.status(500).json({ message: "Erreur serveur." });
+    }
+  };
 
 
 
 
 
 
-module.exports = { 
-    createInvoice,
-    getInvoicesByTontine,
-    getUnpaidInvoicesByActivity,
-    };
+
+module.exports = { createInvoice, getInvoiceDetails, getInvoicesByActivityAndStatus, getFormStructureByActivityId };

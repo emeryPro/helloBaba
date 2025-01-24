@@ -3,44 +3,48 @@
 /** @type {import('sequelize-cli').Migration} */
 module.exports = {
   async up (queryInterface, Sequelize) {
-    await queryInterface.createTable('tokens', {
+    await queryInterface.createTable('settings', {
       id: {
-        allowNull: false,
+        type: Sequelize.INTEGER,
         autoIncrement: true,
         primaryKey: true,
-        type: Sequelize.INTEGER,
+        allowNull: false,
       },
-      user_id: {
+      tva: {
+        type: Sequelize.BOOLEAN,
+        allowNull: false,
+      },
+      client: {
+        type: Sequelize.BOOLEAN,
+        allowNull: false,
+      },
+      activity_id: {
         type: Sequelize.INTEGER,
         allowNull: false,
         references: {
-          model: 'users', // Nom de la table utilisateur
-          key: 'id',
+          model: 'activities',
+          key: 'id',  
         },
         onUpdate: 'CASCADE',
         onDelete: 'CASCADE',
       },
-      token: {
-        type: Sequelize.TEXT,
-        allowNull: false,
-      },
-      expiration_date: {
-        type: Sequelize.DATE,
-        allowNull: false,
-      },
       createdAt: {
-        allowNull: false,
         type: Sequelize.DATE,
+        allowNull: false,
       },
       updatedAt: {
-        allowNull: false,
         type: Sequelize.DATE,
+        allowNull: false,
       },
     });
-
   },
 
   async down (queryInterface, Sequelize) {
-   /*  await queryInterface.dropTable('tokens'); */
+    /**
+     * Add reverting commands here.
+     *
+     * Example:
+     * await queryInterface.dropTable('users');
+     */
   }
 };

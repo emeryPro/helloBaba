@@ -2,10 +2,16 @@ const User = require('../models/User'); // Import du modèle User
 const Role = require('../models/Role'); // Import du modèle Role
 const bcrypt = require('bcrypt'); // Pour hacher les mots de passe
 const ActivityUser = require('../models/ActivityUsers')
+const PermissionToUser = require('../models/PermissionUser')
+const Permission = require('../models/Permission')
 const { Op } = require('sequelize');
 // Créer un utilisateur
 
 User.belongsTo(Role, { foreignKey: 'role_id', as: 'role2' });
+
+
+
+PermissionToUser.belongsTo(Permission, { foreignKey: 'role_id', as: 'Permissions' });
 
 // Créer un utilisateur
 const createUser = async (req, res) => {
@@ -44,6 +50,21 @@ const createUser = async (req, res) => {
       mail: email,
       password: hashedPassword,
     });
+
+
+     // Si l'utilisateur est un directeur, lui attribuer toutes les permissions
+     if (roleName.toLowerCase() === 'directeur' || roleName.toLowerCase() === 'director') {
+      // Récupérer toutes les permissions existantes
+      const allPermissions = await Permission.findAll();
+      
+      // Ajouter chaque permission à la table permission_to_users
+      for (const permission of allPermissions) {
+        await PermissionToUser.create({
+          user_id: newUser.id,
+          permission_id: permission.id,
+        });
+      }
+    }
 
     return res.status(201).json({ message: 'Utilisateur créé avec succès.', user: newUser });
   } catch (error) {
@@ -108,6 +129,24 @@ const createSecondUser = async (req, res) => {
       activity_id: activityId,
       user_id: newUser.id,
     });
+
+
+     // Déterminer les permissions en fonction du rôle
+     let permissionsToAssign = [];
+     if (roleName.toLowerCase() === 'secretaire' || roleName.toLowerCase() === 'secretary') {
+       permissionsToAssign = [1, 2, 4, 6];
+     } else if (roleName.toLowerCase() === 'caissiere' || roleName.toLowerCase() === 'cashier') {
+       permissionsToAssign = [3, 6, 7];
+     } else if (roleName.toLowerCase() === 'chef agence' || roleName.toLowerCase() === 'manager') {
+       permissionsToAssign = [5, 7];
+     }
+ // Ajouter les permissions à l'utilisateur
+ for (const permissionId of permissionsToAssign) {
+  await PermissionToUser.create({
+    user_id: newUser.id,
+    permission_id: permissionId,
+  });
+} 
 
     return res.status(201).json({ message: 'Utilisateur créé avec succès.', user: newUser });
   } catch (error) {
@@ -330,6 +369,121 @@ const unlinkUserFromActivity = async (req, res) => {
 
 
 
+
+
+const updateUserPermission = async (req, res) => {
+  try {
+    const { userId, permissionId, hasPermission } = req.body;
+
+
+   
+
+    const roleId = req.user.role;
+    
+    // Récupérer le rôle de l'utilisateur en fonction de son ID
+    const role = await Role.findByPk(roleId);
+
+    if (!role || role.name !== 'Director') {
+      return res.status(403).json({ message: 'Accès interdit. Seul un Directeur peut gerer les permissions.' });
+    }
+
+    // Vérification des données d'entrée
+    if (userId === undefined || permissionId === undefined || hasPermission === undefined) {
+      return res.status(400).json({ message: 'userId, permissionId et hasPermission sont obligatoires.' });
+    }
+
+    // Vérifier si l'utilisateur existe
+    const user = await User.findByPk(userId);
+    if (!user) {
+      return res.status(404).json({ message: 'Utilisateur non trouvé.' });
+    }
+
+    // Vérifier si la permission existe
+    const permission = await Permission.findByPk(permissionId);
+    if (!permission) {
+      return res.status(404).json({ message: 'Permission non trouvée.' });
+    }
+
+    if (hasPermission) {
+      // Si on veut ajouter la permission
+      const existingRelation = await PermissionToUser.findOne({
+        where: { user_id: userId, permission_id: permissionId },
+      });
+
+      if (existingRelation) {
+        return res.status(400).json({ message: 'Cette permission est déjà attribuée à cet utilisateur.' });
+      }
+
+      // Créer la relation dans la table permission_to_user
+      await PermissionToUser.create({
+        user_id: userId,
+        permission_id: permissionId,
+      });
+
+      return res.status(200).json({ message: 'Permission ajoutée à l\'utilisateur.' });
+    } else {
+      // Si on veut supprimer la permission
+      const existingRelation = await PermissionToUser.findOne({
+        where: { user_id: userId, permission_id: permissionId },
+      });
+
+      if (!existingRelation) {
+        return res.status(400).json({ message: 'Cette permission n\'est pas attribuée à cet utilisateur.' });
+      }
+
+      // Supprimer la relation dans la table permission_to_user
+      await PermissionToUser.destroy({
+        where: { user_id: userId, permission_id: permissionId },
+      });
+
+      return res.status(200).json({ message: 'Permission supprimée de l\'utilisateur.' });
+    }
+  } catch (error) {
+    console.error('Erreur lors de la mise à jour de la permission de l\'utilisateur:', error);
+    return res.status(500).json({ message: 'Erreur interne du serveur.' });
+  }
+};
+
+
+const getUserPermissions = async (req, res) => {
+  try {
+    const { userId } = req.params; // Récupérer l'userId depuis les paramètres de la requête
+
+    // Vérifier si l'utilisateur existe
+    const user = await User.findByPk(userId);
+    if (!user) {
+      return res.status(404).json({ message: 'Utilisateur non trouvé.' });
+    }
+
+    // Récupérer les permissions associées à cet utilisateur
+    const permissions = await PermissionToUser.findAll({
+      where: { user_id: userId },
+      include: {
+        model: Permission, // Inclure les détails de la permission
+        as: 'permissions',
+        attributes: ['id', 'description'], // Les attributs de la table Permission à récupérer
+      },
+    });
+
+    // Si l'utilisateur n'a aucune permission
+    if (permissions.length === 0) {
+      return res.status(404).json({ message: 'Aucune permission trouvée pour cet utilisateur.' });
+    }
+
+    // Extraire les informations des permissions et les envoyer dans la réponse
+    const permissionDetails = permissions.map(permission => permission.Permission);
+
+    return res.status(200).json({ permissions: permissionDetails });
+  } catch (error) {
+    console.error('Erreur lors de la récupération des permissions de l\'utilisateur:', error);
+    return res.status(500).json({ message: 'Erreur interne du serveur.' });
+  }
+};
+
+
+
+
+
 module.exports = {
   createUser,
   getAllUsers,
@@ -337,4 +491,6 @@ module.exports = {
   getUsersByDirector,
   linkUserToActivity,
   unlinkUserFromActivity,
+  updateUserPermission,
+  getUserPermissions
 };

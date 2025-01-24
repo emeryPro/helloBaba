@@ -3,44 +3,49 @@
 /** @type {import('sequelize-cli').Migration} */
 module.exports = {
   async up (queryInterface, Sequelize) {
-    await queryInterface.createTable('tokens', {
+    await queryInterface.createTable('customers', {
       id: {
-        allowNull: false,
+        type: Sequelize.INTEGER,
         autoIncrement: true,
         primaryKey: true,
-        type: Sequelize.INTEGER,
+        allowNull: false,
       },
-      user_id: {
+      activity_id: {
         type: Sequelize.INTEGER,
         allowNull: false,
         references: {
-          model: 'users', // Nom de la table utilisateur
-          key: 'id',
+          model: 'activities',
+          key: 'id',  
         },
         onUpdate: 'CASCADE',
         onDelete: 'CASCADE',
       },
-      token: {
-        type: Sequelize.TEXT,
+      last_name: {
+        type: Sequelize.STRING,
         allowNull: false,
       },
-      expiration_date: {
-        type: Sequelize.DATE,
+      first_name: {
+        type: Sequelize.STRING,
         allowNull: false,
+      },
+      phonenumber: {
+        type: Sequelize.STRING,
+        allowNull: true,
       },
       createdAt: {
-        allowNull: false,
         type: Sequelize.DATE,
+        allowNull: false,
       },
       updatedAt: {
-        allowNull: false,
         type: Sequelize.DATE,
+        allowNull: false,
       },
     });
-
   },
 
   async down (queryInterface, Sequelize) {
-   /*  await queryInterface.dropTable('tokens'); */
+  
+    await queryInterface.dropTable('customers');
+   
   }
 };

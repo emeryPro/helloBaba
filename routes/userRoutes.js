@@ -7,6 +7,7 @@ const { validateToken } = require('../middlewares/validateToken');
 const {getUsersByDirector} = require('../controllers/UserController')
 const {linkUserToActivity} = require('../controllers/UserController')
 const {unlinkUserFromActivity} = require('../controllers/UserController')
+const {updateUserPermission} = require('../controllers/UserController')
 // Route pour créer un utilisateur
 router.post('/register', UserController.createUser);
 
@@ -26,5 +27,7 @@ router.post('/unlink_user_from_activity',validateToken,unlinkUserFromActivity)
 //Route pour recuperer tout les utilisateurs lié à un directeur
 router.get('/get_usersBydirector',validateToken, getUsersByDirector);
 
+
+router.post('/update_user_permission',validateToken,updateUserPermission)
 
 module.exports = router;

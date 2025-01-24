@@ -3,15 +3,15 @@
 /** @type {import('sequelize-cli').Migration} */
 module.exports = {
   async up (queryInterface, Sequelize) {
-    await queryInterface.addColumn('receipts', 'user_id', {
+    await queryInterface.addColumn('receipts', 'createBy', {
       type: Sequelize.INTEGER,
-      allowNull: false,
+      allowNull: true,
       references: {
-        model: 'users', // Nom de la table référencée
-        key: 'id', // Clé primaire de la table référencée
+        model: 'users',  // Nom de la table de référence
+        key: 'id',       // Clé primaire dans la table 'users'
       },
-      onUpdate: 'CASCADE', // Met à jour si l'id de l'utilisateur change
-      onDelete: 'CASCADE', // Supprime les reçus si l'utilisateur est supprimé
+      onUpdate: 'CASCADE',
+      onDelete: 'SET NULL',  // Permet de ne pas supprimer la ligne dans 'receipts' si l'utilisateur est supprimé
     });
   },
 
