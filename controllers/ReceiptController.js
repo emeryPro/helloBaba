@@ -83,7 +83,7 @@ const registerPayment = async (req, res) => {
 
     // Mettre à jour le statut de la facture
 await Invoice.update(
-    { status: 'paid' }, // Nouveau statut (par exemple, 'paid' pour payé)
+    { statut: 'paid' }, // Nouveau statut (par exemple, 'paid' pour payé)
     { where: { id: invoice_id } } // Condition pour identifier la facture
   );
     // Retourner les informations détaillées au client
@@ -177,7 +177,7 @@ const getPaymentDetails = async (req, res) => {
           {
             model: Customer,
             as: 'invoiceCustomer',
-            attributes: ['id', 'name', 'email', 'contact'], // Ajouter les champs que tu veux pour le client
+            attributes: ['id', 'first_name', 'last_name', 'phonenumber','address'], // Ajouter les champs que tu veux pour le client
             required: false,
         },
         ],
