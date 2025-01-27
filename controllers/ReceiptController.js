@@ -4,7 +4,7 @@ const InvoiceItem = require('../models/InvoiceItem')
 const Receipt = require('../models/Receipt')
 const Customer = require('../models/Customers')
 
-InvoiceItem.belongsTo(Invoice, { foreignKey: 'invoice_id', as: 'invoiceItemtwo' });
+/* InvoiceItem.belongsTo(Invoice, { foreignKey: 'invoice_id', as: 'invoiceItem_0' }); */
 Receipt.belongsTo(Invoice, { foreignKey: 'invoice_id', as: 'receiptInvoice' });
 Invoice.belongsTo(Customer, { foreignKey: 'customers_id', as: 'invoiceCustomertwo' });
 
@@ -31,8 +31,8 @@ const registerPayment = async (req, res) => {
       include: [
         {
           model: InvoiceItem,
-          as: 'invoiceItemtwo', // Alias pour les items
-          attributes: ['id', 'designation', 'json'], // Récupérer uniquement le champ JSON
+          as: 'invoiceItem', // Alias pour les items
+          attributes: ['id', 'json'], // Récupérer uniquement le champ JSON
         },
       ],
     });
@@ -40,7 +40,7 @@ const registerPayment = async (req, res) => {
     if (!invoice) {
       return res.status(404).json({ message: 'Facture introuvable.' });
     }
-
+/* 
     // Calculer le total attendu à partir des items
     let totalExpected = 0;
 
@@ -65,7 +65,7 @@ const registerPayment = async (req, res) => {
         amound_paid,
       });
     }
-
+ */
 
 
      // Générer une référence unique pour le paiement
@@ -96,7 +96,7 @@ await Invoice.update(
           id: item.id,
           details: item.json,
         })),
-        totalExpected,
+       /*  totalExpected, */
       },
     });
   } catch (error) {

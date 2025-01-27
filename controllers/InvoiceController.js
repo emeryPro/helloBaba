@@ -218,7 +218,7 @@ const createInvoice = async (req, res) => {
       // Étape 3 : Retourner la structure de formulaire
       return res.status(200).json({
         message: "Structure de formulaire récupérée avec succès.",
-        data: JSON.parse(invoiceItemForm.structure), // Convertir le JSON stocké en objet JS
+        data:/*  JSON.parse( */invoiceItemForm.structure/* ) */, // Convertir le JSON stocké en objet JS
       });
     } catch (error) {
       console.error("Erreur lors de la récupération de la structure de formulaire :", error);
