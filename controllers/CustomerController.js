@@ -1,7 +1,9 @@
 
 const Customer = require('../models/Customers')
 const Activity = require('../models/Activity')
+const Invoice = require('../models/Invoice')
 const User = require('../models/User')
+const InvoiceItem = require('../models/InvoiceItem')
 const jwt = require('jsonwebtoken');
 
 const createCustomer = async (req, res) => {
@@ -151,5 +153,68 @@ const getCustomersByActivityId = async (req, res) => {
 
 
 
+const getCustomerDetailsById = async (req, res) => {
+  try {
+    const { id } = req.params; // Récupère l'ID du client depuis les paramètres de la requête
 
-module.exports = { createCustomer, updateCustomer, getCustomersByActivityId, deleteCustomer };
+    // Étape 1 : Récupérer les informations du client
+    const customer = await Customer.findByPk(id, {
+      attributes: ['id', 'last_name', 'first_name', 'phonenumber', 'address', 'createdAt', 'updatedAt'], // Champs spécifiques à retourner
+    });
+
+    if (!customer) {
+      return res.status(404).json({ message: "Client introuvable." });
+    }
+
+    // Étape 2 : Récupérer les factures associées au client
+    const invoices = await Invoice.findAll({
+      where: { customers_id: id }, // Filtrer par le client ID
+      attributes: ['id', 'facturenumber', 'customers_id', 'activity_id', 'statut','createdAt', 'updatedAt'], // Champs spécifiques des factures
+    });
+
+    // Si aucune facture n'est trouvée
+    if (!invoices || invoices.length === 0) {
+      return res.status(200).json({
+        customer,
+        invoices: [],
+        message: "Aucune facture trouvée pour ce client.",
+      });
+    }
+
+    // Étape 3 : Pour chaque facture, récupérer les articles de facture
+    const invoicesWithItems = await Promise.all(
+      invoices.map(async (invoice) => {
+        const invoiceItems = await InvoiceItem.findAll({
+          where: { invoice_id: invoice.id },
+          attributes: ['id',  'json', 'invoice_id'], // Champs spécifiques des articles de facture
+        });
+
+        return {
+          ...invoice.toJSON(), // Inclure les données de la facture
+          items: invoiceItems, // Ajouter les articles de facture
+        };
+      })
+    );
+
+    // Réponse avec les informations du client, des factures et des articles
+    res.status(200).json({
+      customer,
+      invoices: invoicesWithItems,
+    });
+  } catch (error) {
+    console.error("Erreur lors de la récupération des informations du client :", error);
+    res.status(500).json({
+      message: "Une erreur est survenue lors de la récupération des informations du client.",
+      error: error.message,
+    });
+  }
+};
+
+
+
+
+
+
+
+
+module.exports = { createCustomer, updateCustomer, getCustomersByActivityId, deleteCustomer, getCustomerDetailsById };

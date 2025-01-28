@@ -136,11 +136,20 @@ const createInvoice = async (req, res) => {
       const { activity_id, statut } = req.params;
   
       // Interpréter le statut (true => "paid", false => "unpaid")
-      const invoiceStatus = (statut === 'true' || statut === '1') ? 'paid' : 'pending';
+     /*  const invoiceStatus = (statut === 'true' || statut === '1') ? 'paid' : 'pending'; */
+
+     let invoiceStatusCondition = {};
+     if (statut !== undefined) {
+       const invoiceStatus = (statut === 'true' || statut === '1') ? 'paid' : 'pending';
+       invoiceStatusCondition = { statut: invoiceStatus };
+     }
   
       // Étape 1: Récupérer les factures liées à l'activité et au statut donné
       const invoices = await Invoice.findAll({
-        where: { activity_id, statut: invoiceStatus },
+        where: { activity_id, 
+         /*  statut: invoiceStatus */
+         ...invoiceStatusCondition,
+        },
         include: [
           {
             model: Customer,
