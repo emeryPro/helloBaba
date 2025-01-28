@@ -10,7 +10,7 @@ const createCustomer = async (req, res) => {
     const { activity_id, first_name, last_name, phonenumber, address } = req.body;
 
     if (!activity_id || !first_name || !last_name || !phonenumber || !address) {
-      return res.status(400).json({ message: 'Tous les champs sont obligatoires (activity_id, first_name, last_name, address).' });
+      return res.status(400).json({ message: 'Tous les champs sont obligatoires.' });
     }
 
     const userId = req.user.userId;
@@ -54,7 +54,7 @@ const updateCustomer = async (req, res) => {
   
       // Vérification des données nécessaires
       if (!first_name || !last_name) {
-        return res.status(400).json({ message: 'Les champs first_name et last_name sont obligatoires.' });
+        return res.status(400).json({ message: 'Les champs sont obligatoires.' });
       }
   
       // Vérifier si le client existe dans la base de données
@@ -113,4 +113,43 @@ const updateCustomer = async (req, res) => {
 
 
 
-module.exports = { createCustomer, updateCustomer, deleteCustomer };
+
+
+
+
+const getCustomersByActivityId = async (req, res) => {
+  try {
+    const { activity_id } = req.params; // Récupère l'ID de l'activité à partir des paramètres de la requête
+
+    // Vérifie si l'activité existe (facultatif, mais recommandé)
+    const activity = await Activity.findByPk(activity_id);
+    if (!activity) {
+      return res.status(404).json({ message: "L'activité spécifiée n'existe pas." });
+    }
+
+    // Récupère tous les clients associés à l'activité
+    const customers = await Customer.findAll({
+      where: { activity_id }, // Filtrer par l'ID d'activité
+      attributes: ['id', 'last_name', 'first_name', 'phonenumber', 'address', 'createdAt', 'updatedAt'], // Champs spécifiques à retourner
+  
+    });
+
+    // Vérifie si des clients ont été trouvés
+    if (!customers || customers.length === 0) {
+      return res.status(404).json({ message: "Aucun client trouvé pour cette activité." });
+    }
+
+    // Retourne les clients trouvés
+    res.status(200).json(customers);
+  } catch (error) {
+    console.error("Erreur lors de la récupération des clients :", error);
+    res.status(500).json({ message: "Une erreur est survenue lors de la récupération des clients.", error });
+  }
+};
+
+
+
+
+
+
+module.exports = { createCustomer, updateCustomer, getCustomersByActivityId, deleteCustomer };

@@ -1,4 +1,4 @@
-
+const { Op } = require('sequelize');
 const Invoice = require('../models/Invoice')
 const InvoiceItem = require('../models/InvoiceItem')
 const Receipt = require('../models/Receipt')
@@ -225,4 +225,84 @@ const getPaymentDetails = async (req, res) => {
 
 
 
-module.exports = { registerPayment, getPaymentDetails, getPaymentsByActivity };
+
+
+
+
+
+  const getPaymentsByDateRange = async (req, res) => {
+    try {
+      const { start_date, end_date } = req.query; // Récupérer les dates passées en query params
+      const { activity_id } = req.params;
+  
+      // Si les dates ne sont pas fournies, on prend la date du jour par défaut
+      const today = new Date();
+      const startDate = start_date ? new Date(start_date) : new Date(today.setHours(0, 0, 0, 0)); // Début de la journée
+      const endDate = end_date ? new Date(end_date) : new Date(today.setHours(23, 59, 59, 999)); // Fin de la journée
+  
+      // Étape 1 : Récupérer toutes les factures liées à l'activity_id
+      const invoices = await Invoice.findAll({
+        where: { activity_id },
+        include: [
+          {
+            model: Customer,
+            as: 'invoiceCustomer',
+            attributes: ['id', 'first_name', 'last_name', 'phonenumber', 'address'], // Ajouter les champs désirés
+            required: false,
+          },
+        ],
+      });
+  
+      // Vérifier si des factures existent
+      if (!invoices || invoices.length === 0) {
+        return res.status(404).json({ message: 'Aucune facture trouvée pour cette activité.' });
+      }
+  
+      // Étape 2 : Filtrer les paiements par intervalle de dates
+      const payments = await Promise.all(
+        invoices.map(async (invoice) => {
+          // Récupérer les reçus (paiements) dans l'intervalle de dates
+          const receipts = await Receipt.findAll({
+            where: {
+              invoice_id: invoice.id,
+              createdAt: {
+                [Op.between]: [startDate, endDate], // Filtrer par intervalle de dates
+              },
+            },
+            attributes: ['id', 'reference_payement', 'amound_paid', 'createdAt'],
+          });
+  
+          // Récupérer les items de la facture
+          const invoiceItems = await InvoiceItem.findAll({
+            where: { invoice_id: invoice.id },
+            attributes: ['id', 'designation', 'json'],
+          });
+  
+          return {
+            invoice: {
+              id: invoice.id,
+              facturenumber: invoice.facturenumber,
+              statut: invoice.statut,
+              customer: invoice.invoiceCustomer,
+            },
+            invoiceItems,
+            receipts,
+          };
+        })
+      );
+  
+      // Filtrer uniquement les factures ayant au moins un reçu dans l'intervalle
+      const filteredPayments = payments.filter(payment => payment.receipts.length > 0);
+  
+      // Retourner les résultats
+      res.status(200).json(filteredPayments);
+    } catch (error) {
+      console.error('Erreur lors de la récupération des paiements :', error);
+      res.status(500).json({ message: 'Une erreur est survenue.', error });
+    }
+  };
+  
+
+
+
+module.exports = { registerPayment, getPaymentDetails, getPaymentsByActivity, getPaymentsByDateRange };
