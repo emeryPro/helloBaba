@@ -45,7 +45,7 @@ const createActivity = async (req, res) => {
     // Récupérer le rôle de l'utilisateur en fonction de son ID
     const role = await Role.findByPk(roleId);
 
-    if (!role || role.name !== 'Director') {
+    if (!role || role.name !== 'Directeur') {
       return res.status(403).json({ message: 'Accès interdit. Seul un Directeur peut créer une activité.' });
     }
 
@@ -192,7 +192,7 @@ const deleteActivity = async (req, res) => {
     // Récupérer le rôle de l'utilisateur en fonction de son ID
     const role = await Role.findByPk(roleId);
 
-    if (!role || role.name !== 'Director') {
+    if (!role || role.name !== 'Directeur') {
       return res.status(403).json({ message: 'Accès interdit. Seul un Directeur peut supprimer une activité.' });
     }
 
@@ -296,7 +296,7 @@ const updateActivityName = async (req, res) => {
     // Récupérer le rôle de l'utilisateur en fonction de son ID
     const role = await Role.findByPk(roleId);
 
-    if (!role || role.name !== 'Director') {
+    if (!role || role.name !== 'Directeur') {
       return res.status(403).json({ message: 'Accès interdit. Seul un Directeur peut modifier une activité.' });
     }
 

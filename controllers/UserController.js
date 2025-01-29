@@ -53,7 +53,7 @@ const createUser = async (req, res) => {
 
 
      // Si l'utilisateur est un directeur, lui attribuer toutes les permissions
-     if (roleName.toLowerCase() === 'directeur' || roleName.toLowerCase() === 'director') {
+     if (roleName.toLowerCase() === 'directeur' || roleName.toLowerCase() === 'directeur') {
       // Récupérer toutes les permissions existantes
       const allPermissions = await Permission.findAll();
       
@@ -89,7 +89,7 @@ const createSecondUser = async (req, res) => {
       return res.status(403).json({ message: "Rôle de l'utilisateur connecté non fourni." });
     }
 
-    const directorRole = await Role.findOne({ where: { name: 'director' } });
+    const directorRole = await Role.findOne({ where: { name: 'directeur' } });
     if (!directorRole || parseInt(userRoleId) !== directorRole.id) {
       return res.status(403).json({ message: "Seuls les directeurs peuvent créer de nouveaux utilisateurs." });
     }
@@ -133,11 +133,11 @@ const createSecondUser = async (req, res) => {
 
      // Déterminer les permissions en fonction du rôle
      let permissionsToAssign = [];
-     if (roleName.toLowerCase() === 'secretaire' || roleName.toLowerCase() === 'secretary') {
+     if (roleName.toLowerCase() === 'secretaire' || roleName.toLowerCase() === 'secretaire') {
        permissionsToAssign = [1, 2, 4, 6];
-     } else if (roleName.toLowerCase() === 'caissiere' || roleName.toLowerCase() === 'cashier') {
+     } else if (roleName.toLowerCase() === 'caissiere' || roleName.toLowerCase() === 'caissier') {
        permissionsToAssign = [3, 6, 7];
-     } else if (roleName.toLowerCase() === 'chef agence' || roleName.toLowerCase() === 'manager') {
+     } else if (roleName.toLowerCase() === 'chef agence' || roleName.toLowerCase() === 'chef agence') {
        permissionsToAssign = [5, 7];
      }
  // Ajouter les permissions à l'utilisateur
@@ -215,7 +215,7 @@ const getUsersByDirector = async (req, res) => {
     }
 
     // Vérifier si l'utilisateur est bien un directeur
-    const directorRole = await Role.findOne({ where: { name: 'director' } });
+    const directorRole = await Role.findOne({ where: { name: 'directeur' } });
     if (!directorRole || parseInt(userRoleId) !== directorRole.id) {
       return res.status(403).json({ message: "Seuls les directeurs peuvent exécuter cette requête." });
     }
@@ -329,7 +329,7 @@ const unlinkUserFromActivity = async (req, res) => {
       return res.status(403).json({ message: "Rôle de l'utilisateur connecté non fourni." });
     }
 
-    const directorRole = await Role.findOne({ where: { name: 'director' } });
+    const directorRole = await Role.findOne({ where: { name: 'directeur' } });
     if (!directorRole || parseInt(userRoleId) !== directorRole.id) {
       return res.status(403).json({ message: "Seuls les directeurs peuvent exécuter cette action." });
     }
@@ -383,7 +383,7 @@ const updateUserPermission = async (req, res) => {
     // Récupérer le rôle de l'utilisateur en fonction de son ID
     const role = await Role.findByPk(roleId);
 
-    if (!role || role.name !== 'Director') {
+    if (!role || role.name !== 'Directeur') {
       return res.status(403).json({ message: 'Accès interdit. Seul un Directeur peut gerer les permissions.' });
     }
 

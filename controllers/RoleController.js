@@ -7,7 +7,7 @@ const getRoles = async (req, res) => {
     const roles = await Role.findAll({
       where: {
         name: {
-          [Op.notIn]: ['admin', 'director'], // Exclure les rôles "admin" et "director"
+          [Op.notIn]: ['admin', 'directeur'], // Exclure les rôles "admin" et "director"
         },
       },
     });

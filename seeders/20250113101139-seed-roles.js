@@ -10,21 +10,21 @@ module.exports = {
         updatedAt: new Date(),
       },
       {
-        name: 'Director',
+        name: 'Directeur',
         createdAt: new Date(),
         updatedAt: new Date(),
       },
       {
-        name: 'Secretary',
+        name: 'Secretaire',
         createdAt: new Date(),
         updatedAt: new Date(),
       },
       {
-        name: 'Cashier',
+        name: 'Caissier',
         createdAt: new Date(),
         updatedAt: new Date(),
       },{
-        name: 'Manager',
+        name: 'Chef Agence',
         createdAt: new Date(),
         updatedAt: new Date(),
       },
