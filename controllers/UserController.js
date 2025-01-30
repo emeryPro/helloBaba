@@ -4,6 +4,7 @@ const bcrypt = require('bcrypt'); // Pour hacher les mots de passe
 const ActivityUser = require('../models/ActivityUsers')
 const PermissionToUser = require('../models/PermissionUser')
 const Permission = require('../models/Permission')
+const DgUser = require('../models/DgUser')
 const { Op } = require('sequelize');
 // Créer un utilisateur
 
@@ -84,6 +85,7 @@ const createSecondUser = async (req, res) => {
     }
 
     // Vérification du rôle de l'utilisateur connecté
+    const dgId = req.user.userId
     const userRoleId = req.user.role;
     if (!userRoleId) {
       return res.status(403).json({ message: "Rôle de l'utilisateur connecté non fourni." });
@@ -130,7 +132,12 @@ const createSecondUser = async (req, res) => {
       user_id: newUser.id,
     });
 
-
+    if (dgId) {
+      await DgUser.create({
+        dg_id: dgId, // ID du DG
+        user_id: newUser.id, // ID de l'utilisateur nouvellement créé
+      });
+    }
      // Déterminer les permissions en fonction du rôle
      let permissionsToAssign = [];
      if (roleName.toLowerCase() === 'secretaire' || roleName.toLowerCase() === 'secretaire') {
@@ -205,7 +212,7 @@ const getAllUsers = async (req, res) => {
 
 
 
-const getUsersByDirector = async (req, res) => {
+/* const getUsersByDirector = async (req, res) => {
   try {
     const userRoleId = req.user.role;  // ID du rôle de l'utilisateur connecté
 
@@ -236,12 +243,7 @@ const getUsersByDirector = async (req, res) => {
     // Extraire les IDs des activités
     const activityIds = userActivities.map(activityUser => activityUser.activity_id);
 
- /*    // Maintenant, récupérer tous les utilisateurs associés à ces activities
-    const usersInActivities = await ActivityUser.findAll({
-      where: { activity_id: activityIds },  // Trouver tous les users dans ces activités
-      attributes: ['user_id'],
-    });
- */
+
 
      // Récupérer tous les utilisateurs associés à ces activités, mais exclure le directeur
      const usersInActivities = await ActivityUser.findAll({
@@ -281,7 +283,91 @@ const getUsersByDirector = async (req, res) => {
     console.error('Erreur lors de la récupération des utilisateurs:', error);
     return res.status(500).json({ message: 'Erreur interne du serveur.' });
   }
+}; */
+
+
+
+const getUsersByDirector = async (req, res) => {
+  try {
+    const userRoleId = req.user.role;  // ID du rôle de l'utilisateur connecté
+
+    // Vérification du rôle de l'utilisateur connecté
+    if (!userRoleId) {
+      return res.status(403).json({ message: "Rôle de l'utilisateur connecté non fourni." });
+    }
+
+    // Vérifier si l'utilisateur est bien un directeur
+    const directorRole = await Role.findOne({ where: { name: 'directeur' } });
+    if (!directorRole || parseInt(userRoleId) !== directorRole.id) {
+      return res.status(403).json({ message: "Seuls les directeurs peuvent exécuter cette requête." });
+    }
+
+    // ID du directeur connecté
+    const directorId = req.user.userId;
+
+    // 🔹 Étape 1 : Récupérer les utilisateurs liés au directeur via DgUser
+    const dgUsers = await DgUser.findAll({
+      where: { dg_id: directorId },  // Cherche les utilisateurs liés au directeur
+      attributes: ['user_id'],  // On ne récupère que les IDs des utilisateurs
+    });
+
+    if (dgUsers.length === 0) {
+      return res.status(404).json({ message: 'Aucun utilisateur trouvé pour ce directeur.' });
+    }
+
+    // Extraire les IDs des utilisateurs trouvés
+    const userIds = dgUsers.map(dgUser => dgUser.user_id);
+
+    // 🔹 Étape 2 : Récupérer les activités associées à chaque utilisateur
+    const userActivities = await ActivityUser.findAll({
+      where: { user_id: userIds }, // Trouver les activités des utilisateurs liés au DG
+      attributes: ['user_id', 'activity_id'], // On récupère l'ID de l'utilisateur et de l'activité
+    });
+
+    // Organiser les activités par utilisateur
+    const userActivitiesMap = {};
+    userActivities.forEach(activity => {
+      if (!userActivitiesMap[activity.user_id]) {
+        userActivitiesMap[activity.user_id] = [];
+      }
+      userActivitiesMap[activity.user_id].push(activity.activity_id);
+    });
+
+    // 🔹 Étape 3 : Récupérer les informations des utilisateurs
+    const users = await User.findAll({
+      where: { id: userIds },
+      attributes: ['id', 'firstname', 'lastname', 'mail'],
+      include: [
+        {
+          model: Role,
+          as: 'role2', // Récupérer le rôle
+          attributes: ['name'],
+        }
+      ],
+    });
+
+    // Ajouter les activités associées à chaque utilisateur
+    const usersWithActivities = users.map(user => ({
+      id: user.id,
+      firstname: user.firstname,
+      lastname: user.lastname,
+      mail: user.mail,
+      role: user.role2 ? user.role2.name : null, // Si l'utilisateur a un rôle, on l'ajoute
+      activities: userActivitiesMap[user.id] || [], // Liste des activités associées
+    }));
+
+    // Retourner la réponse
+    return res.status(200).json({
+      message: 'Utilisateurs récupérés avec succès.',
+      users: usersWithActivities,
+    });
+
+  } catch (error) {
+    console.error('Erreur lors de la récupération des utilisateurs:', error);
+    return res.status(500).json({ message: 'Erreur interne du serveur.' });
+  }
 };
+
 
 
 
