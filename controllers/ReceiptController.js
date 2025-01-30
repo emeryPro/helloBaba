@@ -263,7 +263,7 @@ const getPaymentDetails = async (req, res) => {
             attributes: ['id', 'invoice_id', 'reference_payement', 'amound_paid', 'createdAt'],
         });
 
-        // Organisation des données
+    /*     // Organisation des données
         const invoicesWithDetails = invoices.map(invoice => {
             return {
                 id: invoice.id,
@@ -273,12 +273,33 @@ const getPaymentDetails = async (req, res) => {
                 invoiceItems: invoiceItems.filter(item => item.invoice_id === invoice.id),
                 receipts: receipts.filter(receipt => receipt.invoice_id === invoice.id),
             };
-        });
+        }); */
+
+
+        // Organisation des données avec receipts comme parent
+        const receiptsWithDetails = receipts.map(receipt => {
+          // Trouver la facture associée au reçu
+          const invoice = invoices.find(inv => inv.id === receipt.invoice_id);
+
+          return {
+              id: receipt.id,
+              reference_payement: receipt.reference_payement,
+              amound_paid: receipt.amound_paid,
+              createdAt: receipt.createdAt,
+              invoice: invoice ? {
+                  id: invoice.id,
+                  facturenumber: invoice.facturenumber,
+                  statut: invoice.statut,
+                  customer: invoice.invoiceCustomer,
+                  invoiceItems: invoiceItems.filter(item => item.invoice_id === invoice.id),
+              } : null,
+          };
+      });
 
         // Retourner les données bien structurées
         return res.status(200).json({
             message: "Paiements récupérés avec succès.",
-            invoices: invoicesWithDetails,
+            invoices: receiptsWithDetails,
         });
 
     } catch (error) {
