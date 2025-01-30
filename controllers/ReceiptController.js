@@ -166,7 +166,7 @@ const getPaymentDetails = async (req, res) => {
   
 
 
-  const getPaymentsByActivity = async (req, res) => {
+  /* const getPaymentsByActivity = async (req, res) => {
     try {
       const { activity_id } = req.params;
   
@@ -222,8 +222,70 @@ const getPaymentDetails = async (req, res) => {
       res.status(500).json({ message: 'Une erreur est survenue.', error });
     }
   };
+ */
 
 
+
+  const getPaymentsByActivity = async (req, res) => {
+    try {
+        const { activity_id } = req.params;
+
+        // Étape 1: Récupérer toutes les factures liées à l'activity_id avec le client
+        const invoices = await Invoice.findAll({
+            where: { activity_id },
+            include: [
+                {
+                    model: Customer,
+                    as: 'invoiceCustomer',
+                    attributes: ['id', 'first_name', 'last_name', 'phonenumber', 'address'],
+                    required: false,
+                },
+            ],
+        });
+
+        // Vérifier si des factures existent
+        if (!invoices || invoices.length === 0) {
+            return res.status(404).json({ message: "Aucune facture trouvée pour cette activité." });
+        }
+
+        // Récupérer tous les IDs de factures pour éviter plusieurs requêtes
+        const invoiceIds = invoices.map(inv => inv.id);
+
+        // Étape 2: Récupérer en une seule requête tous les items liés aux factures
+        const invoiceItems = await InvoiceItem.findAll({
+            where: { invoice_id: invoiceIds },
+            attributes: ['id', 'invoice_id', /* 'designation', */ 'json'],
+        });
+
+        // Étape 3: Récupérer en une seule requête tous les paiements liés aux factures
+        const receipts = await Receipt.findAll({
+            where: { invoice_id: invoiceIds },
+            attributes: ['id', 'invoice_id', 'reference_payement', 'amound_paid', 'createdAt'],
+        });
+
+        // Organisation des données
+        const invoicesWithDetails = invoices.map(invoice => {
+            return {
+                id: invoice.id,
+                facturenumber: invoice.facturenumber,
+                statut: invoice.statut,
+                customer: invoice.invoiceCustomer,
+                invoiceItems: invoiceItems.filter(item => item.invoice_id === invoice.id),
+                receipts: receipts.filter(receipt => receipt.invoice_id === invoice.id),
+            };
+        });
+
+        // Retourner les données bien structurées
+        return res.status(200).json({
+            message: "Paiements récupérés avec succès.",
+            invoices: invoicesWithDetails,
+        });
+
+    } catch (error) {
+        console.error('Erreur lors de la récupération des paiements:', error);
+        return res.status(500).json({ message: "Erreur interne du serveur." });
+    }
+};
 
 
 
